@@ -136,16 +136,18 @@ function add_classes_to_images($content)
     $images = $dom->getElementsByTagName('img');
 
     foreach ($images as $image) {
-        if ($image->parentNode->nodeName === 'p' || $image->parentNode->nodeName === 'div') {
-            $existing_classes = $image->getAttribute('class');
-            $new_classes = 'w-100 img-fluid';
 
-            if ($existing_classes) {
-                $new_classes = $existing_classes . ' ' . $new_classes;
-            }
+        // if ($image->parentNode->nodeName === 'p' || $image->parentNode->nodeName === 'div') {
 
-            $image->setAttribute('class', $new_classes);
+        $existing_classes = $image->getAttribute('class');
+        $new_classes = 'w-100 img-fluid';
+
+        if ($existing_classes) {
+            $new_classes = $existing_classes . ' ' . $new_classes;
         }
+
+        $image->setAttribute('class', $new_classes);
+        // }
     }
 
     return $dom->saveHTML();
