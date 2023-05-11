@@ -9,20 +9,20 @@ Author URI: https://www.robertandrews.co.uk
 License: GPL2
  */
 
-/**
- * Wrap element in another element.
- * eg. wrap <blockquote> in <figure>
- * Utility function.
- *
- * @param DOMDocument   $dom                Whole DOM object containing the elements to be wrapped
- * @param DOMDocument   $wrapped_element    Element to be wrapped
- * @param string        $new_element_name   Name of the new element to be created
- * @param string        $class              Class to be added to the new element
- *
- * @author Robert Andrews, inspired by @XzKto, https://stackoverflow.com/a/8428323/1375163
- */
 function wrap_element($dom, $wrapped_element, $new_element, $class = null)
 {
+    /**
+     * Wrap element in another element.
+     * eg. wrap <blockquote> in <figure>
+     * Utility function.
+     *
+     * @param DOMDocument   $dom                Whole DOM object containing the elements to be wrapped
+     * @param DOMDocument   $wrapped_element    Element to be wrapped
+     * @param string        $new_element_name   Name of the new element to be created
+     * @param string        $class              Class to be added to the new element
+     *
+     * @author Robert Andrews, inspired by @XzKto, https://stackoverflow.com/a/8428323/1375163
+     */
     // Initialise the new wrapper
     $wrapper = $dom->createElement($new_element);
     // Clone our created element
@@ -37,20 +37,21 @@ function wrap_element($dom, $wrapped_element, $new_element, $class = null)
     }
 }
 
-/**
- * Bootstrapify blockquote elements
- * - Apply .blockquote class to <blockquote> elements
- * - Apply style classes to <blockquote>
- * - Wrap <blockquote> in <figure> - https://getbootstrap.com/docs/5.0/content/typography/#blockquotes
- * - Ignore tweet embeds (iframes fall back to blockquote with class .twitter-tweet)
- *
- * @param DOMDocument   $content            WordPress post content from the_content()
- *
- * @author Robert Andrews
- */
 add_filter('the_content', 'bootstrap_blockquote', 30);
 function bootstrap_blockquote($content)
 {
+    /**
+     * Bootstrapify blockquote elements
+     * - Apply .blockquote class to <blockquote> elements
+     * - Apply style classes to <blockquote>
+     * - Wrap <blockquote> in <figure> - https://getbootstrap.com/docs/5.0/content/typography/#blockquotes
+     * - Ignore tweet embeds (iframes fall back to blockquote with class .twitter-tweet)
+     *
+     * @param DOMDocument   $content            WordPress post content from the_content()
+     *
+     * @author Robert Andrews
+     */
+
     // Load DOM of post content
 
     // $content = mb_convert_encoding($content, 'HTML-ENTITIES', 'UTF-8');
@@ -83,6 +84,16 @@ function bootstrap_blockquote($content)
 
 function add_custom_classes_to_headings($content)
 {
+    /**
+     * Add custom classes to headings
+     *
+     * This function takes a string argument called $content, which is the post content.
+     * It searches for the defined heading tags (h2, h3, and h4) in the $content string and
+     * modifies them by adding the desired classes. The updated content is returned.
+     * @param string $content The post content
+     * @return string The modified post content
+     */
+
     // Define the heading tags you want to target
     $heading_tags = array('h2', 'h3', 'h4');
 
@@ -108,3 +119,45 @@ function add_custom_classes_to_headings($content)
     return $updated_content;
 }
 add_filter('the_content', 'add_custom_classes_to_headings');
+
+function add_classes_to_images($content)
+{
+    /**
+     * Add classes to images.
+     *
+     * Adds classes 'w-100' and 'img-fluid' to all images within a given HTML content.
+     * @param string $content The HTML content to add classes to.
+     * @return string The modified HTML content with added classes to images.
+     */
+    $dom = new DOMDocument();
+    $dom->loadHTML(mb_convert_encoding($content, 'HTML-ENTITIES', 'UTF-8'), LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+
+    $images = $dom->getElementsByTagName('img');
+
+    foreach ($images as $image) {
+        if ($image->parentNode->nodeName === 'p' || $image->parentNode->nodeName === 'div') {
+            $existing_classes = $image->getAttribute('class');
+            $new_classes = 'w-100 img-fluid';
+
+            if ($existing_classes) {
+                $new_classes = $existing_classes . ' ' . $new_classes;
+            }
+
+            $image->setAttribute('class', $new_classes);
+        }
+    }
+
+    return $dom->saveHTML();
+}
+add_filter('the_content', 'add_classes_to_images');
+
+/**
+ * Override default image caption width
+ */
+add_filter('img_caption_shortcode_width', '__return_false');
+/*
+function my_custom_caption_width() {
+return 800; // Set the maximum allowed width for captions
+}
+add_filter('img_caption_shortcode_width', 'my_custom_caption_width');
+ */
