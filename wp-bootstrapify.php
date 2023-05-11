@@ -32,6 +32,7 @@ function bootstrap_blockquote($content)
      * - Apply style classes to <blockquote>
      * - Wrap <blockquote> in <figure> - https://getbootstrap.com/docs/5.0/content/typography/#blockquotes
      * - Ignore tweet embeds (iframes fall back to blockquote with class .twitter-tweet)
+     * - Ignore blockquote followed by a <p> containing an <iframe> with class "wp-embedded-content"
      *
      * @param DOMDocument   $content            WordPress post content from the_content()
      *
@@ -46,9 +47,24 @@ function bootstrap_blockquote($content)
 
     // For every <blockquote> found
     foreach ($dom->getElementsByTagName('blockquote') as $blockquote) {
-        // Except tweet embeds
         $blockquote_class = $blockquote->getAttribute('class');
-        if ($blockquote_class != 'twitter-tweet') {
+        $next_sibling = $blockquote->nextSibling;
+        $skip_blockquote = false;
+
+        while ($next_sibling !== null && $next_sibling->nodeType === 3) { // skip text nodes
+            $next_sibling = $next_sibling->nextSibling;
+        }
+
+        if ($next_sibling !== null && $next_sibling->nodeName === 'p') {
+            foreach ($next_sibling->getElementsByTagName('iframe') as $iframe) {
+                if ($iframe->getAttribute('class') === 'wp-embedded-content') {
+                    $skip_blockquote = true;
+                    break;
+                }
+            }
+        }
+
+        if ($blockquote_class != 'twitter-tweet' && !$skip_blockquote) {
             // Add .blockquote class
             $class_to_add = 'blockquote border-start p-4 bg-light';
             $blockquote->setAttribute('class', $class_to_add);
