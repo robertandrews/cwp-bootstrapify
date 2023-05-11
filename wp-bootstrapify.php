@@ -9,35 +9,21 @@ Author URI: https://www.robertandrews.co.uk
 License: GPL2
  */
 
-function wrap_element($dom, $wrapped_element, $new_element, $class = null)
+function my_custom_content($content)
 {
     /**
-     * Wrap element in another element.
-     * eg. wrap <blockquote> in <figure>
-     * Utility function.
-     *
-     * @param DOMDocument   $dom                Whole DOM object containing the elements to be wrapped
-     * @param DOMDocument   $wrapped_element    Element to be wrapped
-     * @param string        $new_element_name   Name of the new element to be created
-     * @param string        $class              Class to be added to the new element
-     *
-     * @author Robert Andrews, inspired by @XzKto, https://stackoverflow.com/a/8428323/1375163
+     * Run all custom content functions
+     * Ensures we only filter the_content once
      */
-    // Initialise the new wrapper
-    $wrapper = $dom->createElement($new_element);
-    // Clone our created element
-    $wrapper_clone = $wrapper->cloneNode();
-    // Replace image with this wrapper div
-    $wrapped_element->parentNode->replaceChild($wrapper_clone, $wrapped_element);
-    // Append the element to wrapper div
-    $wrapper_clone->appendChild($wrapped_element);
-    // Add passed class
-    if (!empty($class)) {
-        $wrapper_clone->setAttribute('class', $class);
-    }
+    $content = bootstrap_blockquote($content);
+    $content = add_custom_classes_to_headings($content);
+    $content = add_classes_to_images($content);
+    $content = wrap_iframe_videos_in_ratio($content);
+    return $content;
 }
+add_filter('the_content', 'my_custom_content');
 
-add_filter('the_content', 'bootstrap_blockquote', 30);
+// add_filter('the_content', 'bootstrap_blockquote', 30);
 function bootstrap_blockquote($content)
 {
     /**
@@ -53,16 +39,8 @@ function bootstrap_blockquote($content)
      */
 
     // Load DOM of post content
-
-    // $content = mb_convert_encoding($content, 'HTML-ENTITIES', 'UTF-8');
-    // $dom = new DOMDocument('1.0', 'utf-8');
-    // libxml_use_internal_errors(true);
-    // $dom->loadHTML($content, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
-
-    // $content = utf8_decode($content); // https://stackoverflow.com/questions/1269485/how-do-i-tell-domdocument-load-what-encoding-i-want-it-to-use
     $dom = new DOMDocument('1.0', 'iso-8859-1');
     libxml_use_internal_errors(true);
-    // $dom->loadHTML($content);
     $dom->loadhtml(mb_convert_encoding($content, 'HTML-ENTITIES', 'UTF-8'));
     libxml_clear_errors();
 
@@ -71,11 +49,15 @@ function bootstrap_blockquote($content)
         // Except tweet embeds
         $blockquote_class = $blockquote->getAttribute('class');
         if ($blockquote_class != 'twitter-tweet') {
-            // Add .blockquote class - class addition contributed by @Gillu13, https://stackoverflow.com/a/63088684/1375163
+            // Add .blockquote class
             $class_to_add = 'blockquote border-start p-4 bg-light';
             $blockquote->setAttribute('class', $class_to_add);
+
             // Wrap blockquote in <figure>
-            wrap_element($dom, $blockquote, 'figure');
+            $wrapper = $dom->createElement('figure');
+            $wrapper_clone = $wrapper->cloneNode();
+            $blockquote->parentNode->replaceChild($wrapper_clone, $blockquote);
+            $wrapper_clone->appendChild($blockquote);
         }
     }
     $content = $dom->saveHTML();
@@ -107,7 +89,7 @@ function add_custom_classes_to_headings($content)
         $content = $matches[3];
 
         // Add the desired classes to the heading tag
-        $updated_attributes = 'class="flex-fill border-bottom pb-2 mt-5 mb-3 ' . $attributes . '"';
+        $updated_attributes = 'class="flex-fill border-bottom pb-2 mt-5 mb-3"' . $attributes;
 
         // Return the modified heading tag
         return '<' . $tag . ' ' . $updated_attributes . '>' . $content . '</' . $tag . '>';
@@ -118,7 +100,7 @@ function add_custom_classes_to_headings($content)
 
     return $updated_content;
 }
-add_filter('the_content', 'add_custom_classes_to_headings');
+// add_filter('the_content', 'add_custom_classes_to_headings');
 
 function add_classes_to_images($content)
 {
@@ -130,6 +112,9 @@ function add_classes_to_images($content)
      * @return string The modified HTML content with added classes to images.
      */
     $dom = new DOMDocument();
+
+    // error_log("Content before loadHTML: " . $content);
+
     $dom->loadHTML(mb_convert_encoding($content, 'HTML-ENTITIES', 'UTF-8'), LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
 
     $images = $dom->getElementsByTagName('img');
@@ -149,7 +134,7 @@ function add_classes_to_images($content)
 
     return $dom->saveHTML();
 }
-add_filter('the_content', 'add_classes_to_images');
+// add_filter('the_content', 'add_classes_to_images');
 
 /**
  * Override default image caption width
@@ -161,3 +146,42 @@ return 800; // Set the maximum allowed width for captions
 }
 add_filter('img_caption_shortcode_width', 'my_custom_caption_width');
  */
+
+function remove_youtube_dimensions($html)
+{
+    // Remove width and height attributes from YouTube iframe
+    $html = preg_replace('/(width|height)="[\d]+"/i', '', $html);
+
+    return $html;
+}
+add_filter('embed_oembed_html', 'remove_youtube_dimensions');
+
+function wrap_iframe_videos_in_ratio($content)
+{
+    /**
+     * Wrap video iframe elements with a div element with class "ratio ratio-16x9"
+     *
+     * @param string $content WordPress post content
+     * @return string Modified post content
+     */
+    $dom = new DOMDocument();
+    libxml_use_internal_errors(true);
+    $dom->loadHTML(mb_convert_encoding($content, 'HTML-ENTITIES', 'UTF-8'));
+
+    $iframes = $dom->getElementsByTagName('iframe');
+
+    foreach ($iframes as $iframe) {
+        $src = $iframe->getAttribute('src');
+        if (strpos($src, 'youtube.com') !== false || strpos($src, 'vimeo.com') !== false) {
+            $wrapper = $dom->createElement('div');
+            $wrapper->setAttribute('class', 'ratio ratio-16x9');
+            $iframe->parentNode->replaceChild($wrapper, $iframe);
+            $wrapper->appendChild($iframe);
+        }
+    }
+
+    $output = $dom->saveHTML();
+    return $output;
+}
+
+// add_filter('the_content', 'wrap_iframe_videos_in_ratio', 30);
