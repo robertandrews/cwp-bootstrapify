@@ -1,6 +1,6 @@
 <?php
 /*
-Plugin Name: Bootstrapify
+Plugin Name: CWP Bootstrapify
 Plugin URI:
 Description: Bootstrapify WordPress content
 Version: 1.0
@@ -66,7 +66,7 @@ function bootstrap_blockquote($content)
 
         if ($blockquote_class != 'twitter-tweet' && !$skip_blockquote) {
             // Add .blockquote class
-            $class_to_add = 'blockquote border-start p-4 bg-light';
+            $class_to_add = 'blockquote border-start p-4 bg-body-tertiary';
             $blockquote->setAttribute('class', $class_to_add);
 
             // Wrap blockquote in <figure>
@@ -140,7 +140,7 @@ function add_classes_to_images($content)
         // if ($image->parentNode->nodeName === 'p' || $image->parentNode->nodeName === 'div') {
 
         $existing_classes = $image->getAttribute('class');
-        $new_classes = 'w-100 img-fluid';
+        $new_classes = 'w-100 img-fluid rounded';
 
         if ($existing_classes) {
             $new_classes = $existing_classes . ' ' . $new_classes;
@@ -190,12 +190,16 @@ function wrap_iframe_videos_in_ratio($content)
 
     foreach ($iframes as $iframe) {
         $src = $iframe->getAttribute('src');
-        if (strpos($src, 'youtube.com') !== false || strpos($src, 'vimeo.com') !== false) {
+        if (strpos($src, 'youtube.com') !== false || strpos($src, 'vimeo.com') !== false || strpos($src, 'soundcloud.com') !== false) {
+            $iframe->setAttribute('class', 'rounded');
             $wrapper = $dom->createElement('div');
-            $wrapper->setAttribute('class', 'ratio ratio-16x9');
+            $wrapper->setAttribute('class', 'ratio ratio-16x9 mb-3');
             $iframe->parentNode->replaceChild($wrapper, $iframe);
             $wrapper->appendChild($iframe);
-        }
+        } /* else {
+    // add 'w-100' class to the iframe
+    $iframe->setAttribute('class', 'w-100');
+    } */
     }
 
     $output = $dom->saveHTML();
