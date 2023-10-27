@@ -140,7 +140,7 @@ function add_classes_to_images($content)
         // if ($image->parentNode->nodeName === 'p' || $image->parentNode->nodeName === 'div') {
 
         $existing_classes = $image->getAttribute('class');
-        $new_classes = 'w-100 img-fluid rounded';
+        $new_classes = 'w-100 img-fluid rounded pb-2';
 
         if ($existing_classes) {
             $new_classes = $existing_classes . ' ' . $new_classes;
